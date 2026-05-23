@@ -201,8 +201,8 @@ export function getRelatedPapers(currentId, limit = 3) {
   return papers.filter((p) => p.id !== currentId).slice(0, limit);
 }
 
-export function searchPapers(query, filters = {}) {
-  let results = [...papers];
+export function filterPapers(sourcePapers = [], query, filters = {}) {
+  let results = [...sourcePapers];
 
   if (query) {
     const q = query.toLowerCase();
@@ -211,7 +211,8 @@ export function searchPapers(query, filters = {}) {
         p.title.toLowerCase().includes(q) ||
         p.courseCode.toLowerCase().includes(q) ||
         p.departmentFull.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
+        (p.department || "").toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q)
     );
   }
 
@@ -226,4 +227,8 @@ export function searchPapers(query, filters = {}) {
   }
 
   return results;
+}
+
+export function searchPapers(query, filters = {}) {
+  return filterPapers(papers, query, filters);
 }

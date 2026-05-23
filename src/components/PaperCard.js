@@ -30,7 +30,9 @@ export default function PaperCard({ paper }) {
       </div>
       <div className="paper-card-footer">
         <Link
-          href={`/paper/${paper.id}`}
+          href={`/paper/${paper.docId || paper.id}?dept=${encodeURIComponent(
+            paper.departmentFull || paper.department || ""
+          )}`}
           className="btn btn-secondary"
           id={`view-details-${paper.id}`}
         >

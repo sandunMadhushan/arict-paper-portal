@@ -1,32 +1,110 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import FilterSidebar from "@/components/FilterSidebar";
 import PaperCard from "@/components/PaperCard";
 import PaperListItem from "@/components/PaperListItem";
 import Pagination from "@/components/Pagination";
-import { searchPapers } from "@/data/papers";
+import { filterPapers, papers as localPapers } from "@/data/papers";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+const departmentCollections = [
+  "Biological Sciences",
+  "Chemical Sciences",
+  "Computing",
+  "Health Promotion",
+  "Physical Sciences",
+];
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
-  const query = searchParams.get("q") || "Computing";
+  const query = searchParams.get("q") || "";
 
   const [viewMode, setViewMode] = useState("grid"); // grid, compact, list
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedDepartments, setSelectedDepartments] = useState(["Computing"]);
-  const [selectedYears, setSelectedYears] = useState(["2023"]);
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [papers, setPapers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPapers = async () => {
+      try {
+        const snapshots = await Promise.all(
+          departmentCollections.map((dept) => getDocs(collection(db, dept)))
+        );
+
+        const data = snapshots.flatMap((snapshot, index) => {
+          const collectionName = departmentCollections[index];
+          return snapshot.docs.map((doc) => {
+            const docData = doc.data();
+            const subjectCode =
+              docData["subject code"] || docData.subjectCode || docData.courseCode || "";
+            const subjectName =
+              docData["subject name"] || docData.subjectName || docData.title || "";
+            const instructor = docData.instructor || "";
+            const driveLink = docData["drive link"] || docData.driveLink || "";
+            const year = docData.year || "";
+
+            return {
+              id: `${collectionName}-${doc.id}`,
+              docId: doc.id,
+              courseCode: subjectCode,
+              title: subjectName,
+              description: instructor ? `Instructor: ${instructor}` : "",
+              year,
+              department: collectionName,
+              departmentFull: collectionName,
+              semester: docData.semester || "",
+              duration: docData.duration || "",
+              fileSize: docData.fileSize || "",
+              difficulty: docData.difficulty || "",
+              type: docData.type || null,
+              isRestricted: Boolean(docData.isRestricted),
+              driveLink,
+              instructor,
+            };
+          });
+        });
+
+        if (isMounted) {
+          setPapers(data);
+          setLoadError("");
+        }
+      } catch (error) {
+        if (isMounted) {
+          setLoadError(error?.message || "Failed to load papers.");
+          setPapers(localPapers);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchPapers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const results = useMemo(() => {
-    return searchPapers(query, {
+    return filterPapers(papers, query, {
       departments: selectedDepartments.length > 0 ? selectedDepartments : undefined,
       years: selectedYears.length > 0 ? selectedYears : undefined,
     });
-  }, [query, selectedDepartments, selectedYears]);
+  }, [papers, query, selectedDepartments, selectedYears]);
 
   // If filters produce no results, show all matching the query
-  const displayResults = results.length > 0 ? results : searchPapers(query);
+  const displayResults = results.length > 0 ? results : filterPapers(papers, query);
   const totalResults = displayResults.length;
 
   return (
@@ -93,7 +171,13 @@ function SearchResultsContent() {
             </div>
 
             {/* Results */}
-            {viewMode === "list" ? (
+            {loading ? (
+              <div className="results-empty">Loading papers...</div>
+            ) : displayResults.length === 0 ? (
+              <div className="results-empty">
+                {loadError ? "Showing local sample data." : "No papers found."}
+              </div>
+            ) : viewMode === "list" ? (
               <div className="results-list">
                 {displayResults.map((paper) => (
                   <PaperListItem key={paper.id} paper={paper} />
