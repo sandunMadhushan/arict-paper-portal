@@ -27,7 +27,9 @@ export default function PaperListItem({ paper }) {
       </div>
       <div className="paper-list-item-action">
         <Link
-          href={`/paper/${paper.id}`}
+          href={`/paper/${paper.docId || paper.id}?dept=${encodeURIComponent(
+            paper.departmentFull || paper.department || ""
+          )}`}
           className="btn btn-secondary"
           id={`list-view-details-${paper.id}`}
         >

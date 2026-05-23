@@ -36,7 +36,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Header />
         <main style={{ flexGrow: 1 }}>{children}</main>
         <Footer />

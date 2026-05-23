@@ -3,12 +3,13 @@ import { FileText, BookOpen, Users } from "lucide-react";
 
 export default function DepartmentCard({ department, index }) {
   const isFirst = index === 0;
-  const hasCounts =
-    Number.isFinite(department.paperCount) &&
-    Number.isFinite(department.courseCount);
-  const resourceTotal = hasCounts
+  const hasPaperCount = Number.isFinite(department.paperCount);
+  const hasCourseCount = Number.isFinite(department.courseCount);
+  const resourceTotal = hasPaperCount && hasCourseCount
     ? (department.paperCount + department.courseCount).toLocaleString()
-    : "—";
+    : hasPaperCount
+      ? department.paperCount.toLocaleString()
+      : "—";
 
   return (
     <Link
@@ -40,13 +41,13 @@ export default function DepartmentCard({ department, index }) {
         <div className="dept-card-stats">
           <div className="dept-card-stat">
             <span className="dept-card-stat-value">
-              {hasCounts ? department.paperCount.toLocaleString() : "—"}
+              {hasPaperCount ? department.paperCount.toLocaleString() : "—"}
             </span>
             <span className="dept-card-stat-label">Papers</span>
           </div>
           <div className="dept-card-stat">
             <span className="dept-card-stat-value">
-              {hasCounts ? department.courseCount.toLocaleString() : "—"}
+              {hasCourseCount ? department.courseCount.toLocaleString() : "—"}
             </span>
             <span className="dept-card-stat-label">Courses</span>
           </div>

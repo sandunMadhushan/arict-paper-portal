@@ -4,7 +4,9 @@ import Chip from "./Chip";
 export default function RelatedPaperCard({ paper }) {
   return (
     <Link
-      href={`/paper/${paper.id}`}
+      href={`/paper/${paper.docId || paper.id}?dept=${encodeURIComponent(
+        paper.departmentFull || paper.department || ""
+      )}`}
       className="related-card"
       id={`related-${paper.id}`}
     >
