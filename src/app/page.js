@@ -1,66 +1,64 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import SearchBar from "@/components/SearchBar";
+import DepartmentCard from "@/components/DepartmentCard";
+import { departments } from "@/data/departments";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      {/* Hero Search Section */}
+      <section className="hero" id="hero-section">
+        <div className="hero-pattern" />
+        <div className="container hero-content">
+          <span className="hero-badge">Past Paper Archive</span>
+          <h1 className="text-headline-xl">
+            Access Years of Academic Excellence
+          </h1>
+          <p className="text-body-lg hero-subtitle">
+            Search through thousands of past examination papers, meticulously
+            organized by department and course for ARICT students.
           </p>
+          <SearchBar />
+          <div className="hero-popular">
+            <span>Popular:</span>
+            <Link href="/search?q=ICT101">ICT101</Link>
+            <Link href="/search?q=NET204">NET204</Link>
+            <Link href="/search?q=DBM302">DBM302</Link>
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Browse by Department */}
+      <section className="department-section" id="departments-section">
+        <div className="container">
+          <div className="department-header">
+            <div>
+              <h2 className="text-headline-lg">Browse by Department</h2>
+              <p className="text-body-md">
+                Explore resources organized by academic faculties.
+              </p>
+            </div>
+            <Link href="/search" className="view-all">
+              View all{" "}
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: "18px" }}
+              >
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+          <div className="department-grid">
+            {departments.map((dept, index) => (
+              <DepartmentCard
+                key={dept.id}
+                department={dept}
+                index={index}
+              />
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </>
   );
 }
