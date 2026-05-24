@@ -1,6 +1,6 @@
 # ARICT Past Paper Portal
 
-A web application for the **Association of Rajarata Information & Communication Technology (ARICT)** that lets students browse, search, and download past examination papers. Papers are stored in **Firebase Firestore** and linked via **Google Drive** URLs. A separate **admin** area allows staff to add new papers to the database.
+A web application for the **Association of Rajarata Information & Communication Technology (ARICT)** that lets students browse, search, and download past examination papers. Papers are stored in **Firebase Firestore** and linked via **Google Drive** URLs. A dedicated **admin** area provides a dashboard and full CRUD for managing papers. Students can also **request missing papers** via an EmailJS-powered form.
 
 ---
 
@@ -14,9 +14,11 @@ A web application for the **Association of Rajarata Information & Communication 
 - [Routes & Pages](#routes--pages)
 - [Data Model (Firestore)](#data-model-firestore)
 - [How It Works](#how-it-works)
+- [Shared Library (`src/lib/papers.js`)](#shared-library-srclibpapersjs)
 - [Environment Variables](#environment-variables)
 - [Getting Started](#getting-started)
 - [Admin Area](#admin-area)
+- [Request a Paper (EmailJS)](#request-a-paper-emailjs)
 - [Components](#components)
 - [Styling & Design](#styling--design)
 - [Fallback Data](#fallback-data)
@@ -30,14 +32,23 @@ A web application for the **Association of Rajarata Information & Communication 
 
 ## Overview
 
-This is a [Next.js](https://nextjs.org) App Router application (`src/app/`) that serves as a **past paper archive** for ARICT students. The public site provides:
+This is a [Next.js](https://nextjs.org) App Router application that serves as a **past paper archive** for ARICT students.
 
-- A searchable catalog of papers across five academic departments
+**Public site** (`src/app/(public)/`):
+
+- Searchable catalog across five academic departments
 - Department and examination-period browsing on the home page
-- Individual paper detail pages with PDF preview and download
-- Static informational pages (About, Faculty)
+- Paper detail pages with Google Drive PDF preview and download
+- Static pages (About, Faculty)
+- **Request Paper** modal — students submit missing-paper requests by email
 
-The **admin** section (`/admin/add-paper`) is a form for adding papers directly to Firestore. It is not linked in the main navigation and is not protected by authentication in the current codebase.
+**Admin area** (`src/app/admin/`):
+
+- Dashboard with stats and recently added papers
+- Add, edit, and delete papers in Firestore
+- Dedicated admin layout (sidebar + top bar), separate from the public header/footer
+
+Admin routes are **not linked** in the public navigation and are **not protected by authentication** in the current codebase.
 
 ---
 
@@ -47,23 +58,25 @@ The **admin** section (`/admin/add-paper`) is a form for adding papers directly 
 
 | Feature | Description |
 |--------|-------------|
-| **Home** | Hero search, department cards with live paper counts from Firestore, browse-by-examination-period links |
+| **Home** | Hero search, department cards with live Firestore paper counts, browse-by-examination-period links |
 | **Search / Papers** | Full paper list with text search, department/year filters, compact grid and list views |
 | **Paper detail** | Metadata, Google Drive PDF preview in an iframe, download link, related papers |
 | **About / Faculty** | Static content about ARICT and faculty support |
-| **Search** | Query by course code, module name, department, instructor, or description |
+| **Request Paper** | Modal form (header button) sends paper requests to ARICT via EmailJS |
 
-### Admin (current)
+### Admin
 
 | Feature | Route | Description |
 |--------|-------|-------------|
-| **Add paper** | `/admin/add-paper` | Form to create a new document in a department Firestore collection |
+| **Dashboard** | `/admin` | Total papers, per-department counts, largest department, recently added papers table |
+| **Add paper** | `/admin/add-paper` | Create a new document in a department Firestore collection |
+| **Manage papers** | `/admin/papers` | Search/filter all papers; view, edit, or delete |
+| **Edit paper** | `/admin/papers/[department]/[id]` | Update fields or move paper to another department |
 
 ### Planned (not implemented yet)
 
-- `/admin` dashboard
-- Manage / edit / delete papers
 - Admin authentication and route protection
+- Analytics, bulk import, admin user management (noted on dashboard “Coming Soon” panel)
 
 ---
 
@@ -74,11 +87,12 @@ The **admin** section (`/admin/add-paper`) is a form for adding papers directly 
 | Framework | [Next.js 16](https://nextjs.org) (App Router) |
 | UI | [React 19](https://react.dev) |
 | Database | [Firebase Firestore](https://firebase.google.com/docs/firestore) |
+| Email | [EmailJS](https://www.emailjs.com/) (`@emailjs/browser`) for paper requests |
 | Icons | [Material Symbols](https://fonts.google.com/icons), [Lucide React](https://lucide.dev) |
 | Fonts | Hanken Grotesk, Public Sans (Google Fonts) |
 | Linting | ESLint with `eslint-config-next` |
 
-There is **no** Firebase Authentication, API routes, or server-side data layer in the current setup. All Firestore reads and writes happen from **client components** in the browser.
+There is **no** Firebase Authentication or server-side API layer. Firestore reads and writes run from **client components** in the browser.
 
 ---
 
@@ -86,8 +100,19 @@ There is **no** Firebase Authentication, API routes, or server-side data layer i
 
 ```mermaid
 flowchart TB
-  subgraph Browser["Browser (Client)"]
-    Pages["Next.js Pages<br/>(React Client Components)"]
+  subgraph Public["Public site (public layout)"]
+    PublicPages["(public) pages"]
+    RequestModal["RequestPaperModal"]
+    EmailJS["EmailJS"]
+  end
+
+  subgraph Admin["Admin area (admin layout)"]
+    AdminPages["admin pages"]
+    PaperForm["PaperForm / PapersTable"]
+  end
+
+  subgraph Shared["Shared client layer"]
+    PapersLib["src/lib/papers.js"]
     FirebaseSDK["Firebase SDK"]
   end
 
@@ -97,48 +122,64 @@ flowchart TB
 
   subgraph External["External"]
     GDrive["Google Drive<br/>(PDF hosting)"]
+    ARICTEmail["arict@as.rjt.ac.lk"]
   end
 
-  Pages --> FirebaseSDK
+  PublicPages --> PapersLib
+  AdminPages --> PapersLib
+  PapersLib --> FirebaseSDK
   FirebaseSDK --> Firestore
-  Pages -->|"Preview / Download URLs"| GDrive
+  PublicPages --> GDrive
+  AdminPages --> GDrive
+  RequestModal --> EmailJS
+  EmailJS --> ARICTEmail
 ```
 
 **Data flow summary:**
 
-1. On load, pages call `getDocs()` on each department collection in Firestore.
-2. Documents are **normalized** in the client into a consistent paper shape (course code, title, year, etc.).
-3. PDFs are not stored in Firebase; only a **Google Drive link** is saved. The app builds preview and download URLs from that link.
-4. If Firestore fails, search and paper detail pages fall back to **local sample data** in `src/data/papers.js`.
+1. Pages load papers via `fetchAllPapers()` / `fetchPaperById()` in `src/lib/papers.js`, or inline `getDocs()` on public pages.
+2. Documents are **normalized** into a consistent paper shape (course code, title, year, instructor, drive link, etc.).
+3. PDFs are **not** stored in Firebase — only a **Google Drive link** is saved. Preview and download URLs are built from that link.
+4. If Firestore fails on search or paper detail, the app falls back to **local sample data** in `src/data/papers.js`.
+5. Admin create/update/delete operations go through the same `src/lib/papers.js` helpers.
 
 ---
 
 ## Project Structure
 
 ```
-arict-paper-portal/
-├── public/                    # Static assets (logo, icons)
+arict-past-paper-portal/
+├── public/                         # Static assets (logo, icons)
 ├── src/
-│   ├── app/                   # Next.js App Router pages
-│   │   ├── layout.js          # Root layout (Header + main + Footer)
-│   │   ├── globals.css        # Global styles and design tokens
-│   │   ├── page.js            # Home
-│   │   ├── about/page.js
-│   │   ├── faculty/page.js
-│   │   ├── search/page.js     # Papers listing & search
-│   │   ├── paper/[id]/page.js # Single paper detail
-│   │   └── admin/
-│   │       └── add-paper/page.js
-│   ├── components/            # Reusable UI components
+│   ├── app/
+│   │   ├── layout.js               # Root layout (fonts, metadata)
+│   │   ├── globals.css             # Global styles and design tokens
+│   │   ├── (public)/               # Public route group (Header + Footer)
+│   │   │   ├── layout.js
+│   │   │   ├── page.js             # Home
+│   │   │   ├── about/page.js
+│   │   │   ├── faculty/page.js
+│   │   │   ├── search/page.js
+│   │   │   └── paper/[id]/page.js
+│   │   └── admin/                  # Admin route group (sidebar layout)
+│   │       ├── layout.js
+│   │       ├── page.js             # Dashboard
+│   │       ├── add-paper/page.js
+│   │       ├── papers/page.js      # Manage papers
+│   │       └── papers/[department]/[id]/page.js  # Edit paper
+│   ├── components/
+│   │   ├── admin/                  # AdminSidebar, PaperForm, PapersTable, etc.
+│   │   └── ...                     # Public UI components
 │   ├── data/
-│   │   ├── departments.js     # Department definitions
-│   │   └── papers.js          # Local fallback papers + filter helpers
+│   │   ├── departments.js          # Department definitions
+│   │   └── papers.js               # Local fallback papers + filter helpers
 │   └── lib/
-│       └── firebase.js        # Firebase app + Firestore init
-├── .env.local                 # Firebase config (create locally; not committed)
-├── env.local                  # Alternate local env filename (gitignored)
+│       ├── firebase.js             # Firebase app + Firestore init
+│       ├── papers.js               # CRUD, normalization, Drive URL helpers
+│       └── constants.js            # Department names, admin nav, official email
+├── .env.local                      # Firebase + EmailJS config (create locally)
 ├── next.config.mjs
-├── jsconfig.json              # Path alias: @/* → src/*
+├── jsconfig.json                   # Path alias: @/* → src/*
 └── package.json
 ```
 
@@ -152,11 +193,11 @@ Path alias: imports like `@/components/Header` resolve to `src/components/Header
 
 | Route | File | Purpose |
 |-------|------|---------|
-| `/` | `src/app/page.js` | Home: search hero, departments, exam periods |
-| `/search` | `src/app/search/page.js` | All papers; supports `?q=` and `?years=` |
-| `/paper/[id]` | `src/app/paper/[id]/page.js` | Paper detail; supports `?dept=` for faster lookup |
-| `/about` | `src/app/about/page.js` | About ARICT and the portal |
-| `/faculty` | `src/app/faculty/page.js` | Faculty information |
+| `/` | `src/app/(public)/page.js` | Home: search hero, departments, exam periods |
+| `/search` | `src/app/(public)/search/page.js` | All papers; supports `?q=` and `?years=` |
+| `/paper/[id]` | `src/app/(public)/paper/[id]/page.js` | Paper detail; supports `?dept=` for direct lookup |
+| `/about` | `src/app/(public)/about/page.js` | About ARICT and the portal |
+| `/faculty` | `src/app/(public)/faculty/page.js` | Faculty information |
 
 **URL examples:**
 
@@ -169,20 +210,32 @@ Path alias: imports like `@/components/Header` resolve to `src/components/Header
 
 | Route | File | Purpose |
 |-------|------|---------|
-| `/admin/add-paper` | `src/app/admin/add-paper/page.js` | Add a new paper to Firestore |
+| `/admin` | `src/app/admin/page.js` | Dashboard: stats, department breakdown, recent papers |
+| `/admin/add-paper` | `src/app/admin/add-paper/page.js` | Add a new paper |
+| `/admin/papers` | `src/app/admin/papers/page.js` | List, search, filter, delete papers |
+| `/admin/papers/[department]/[id]` | `src/app/admin/papers/[department]/[id]/page.js` | Edit an existing paper |
 
-There is **no** `/admin` index page yet. Access add-paper by navigating directly to the URL (e.g. `http://localhost:3000/admin/add-paper`).
+Admin URLs use encoded department names and document IDs, e.g.  
+`/admin/papers/Computing/abc123`.
+
+Access admin by navigating directly (e.g. `http://localhost:3000/admin`). The public header does not link to admin.
 
 ### Navigation
 
-The header (`src/components/Header.js`) links to:
+**Public header** (`src/components/Header.js`):
 
 - Departments → `/`
 - Papers → `/search`
 - Faculty → `/faculty`
 - About Us → `/about`
+- **Request Paper** → opens `RequestPaperModal`
 
-Login and Register buttons currently point to `/search` (placeholders; no auth implemented).
+**Admin sidebar** (`src/components/admin/AdminSidebar.js`):
+
+- Dashboard → `/admin`
+- Add Paper → `/admin/add-paper`
+- Manage Papers → `/admin/papers`
+- View Site → `/`
 
 ---
 
@@ -202,9 +255,9 @@ Each **department name** is a **top-level Firestore collection**. Collection IDs
 
 Each **paper** is one document inside the department collection. The document ID is auto-generated on create (`addDoc`).
 
-### Document fields (admin create)
+### Document fields (write path)
 
-When adding a paper via `/admin/add-paper`, these fields are written:
+When adding or updating a paper via admin, these fields are written (see `formToPayload()` in `src/lib/papers.js`):
 
 | Field | Type | Required | Example |
 |-------|------|----------|---------|
@@ -214,11 +267,11 @@ When adding a paper via `/admin/add-paper`, these fields are written:
 | `department` | string | Yes | `Computing` (same as collection name) |
 | `instructor` | string | No | `Ms. A.K.N.L. Aththanagoda` |
 | `drive link` | string | No | `https://drive.google.com/file/d/...` |
-| `createdAt` | timestamp | Auto | Server timestamp on create |
+| `createdAt` | timestamp | Auto (create only) | Server timestamp on create |
 
 ### Field aliases (read path)
 
-The app tolerates **multiple field names** when reading from Firestore (legacy or inconsistent data). Examples:
+The app tolerates **multiple field names** when reading from Firestore. Examples:
 
 | Normalized use | Accepted source fields |
 |----------------|------------------------|
@@ -228,7 +281,7 @@ The app tolerates **multiple field names** when reading from Firestore (legacy o
 | Year / exam period | `year`, `Year`, `exam period`, `examination period` |
 | Instructor | `instructor`, `Instructor`, `lecturer`, `lecturer name`, and similar variants |
 
-Optional fields used when present: `description`, `semester`, `duration`, `fileSize`, `difficulty`, `type`, `isRestricted`.
+Optional fields when present: `description`, `semester`, `duration`, `fileSize`, `difficulty`, `type`, `isRestricted`.
 
 ### Normalized paper object (client)
 
@@ -237,7 +290,7 @@ After fetching, papers are shaped roughly as:
 ```js
 {
   id: "Computing-abc123",      // composite: department-docId
-  docId: "abc123",             // Firestore document ID
+  docId: "abc123",               // Firestore document ID
   courseCode: "ICT3214",
   title: "Mobile Application Development",
   description: "",
@@ -246,6 +299,7 @@ After fetching, papers are shaped roughly as:
   departmentFull: "Computing",
   instructor: "...",
   driveLink: "https://drive.google.com/...",
+  createdAt: { seconds, nanoseconds },  // Firestore Timestamp when present
   semester, duration, fileSize, difficulty, type, isRestricted
 }
 ```
@@ -257,18 +311,18 @@ After fetching, papers are shaped roughly as:
 ### Home page (`/`)
 
 1. Loads department metadata from `src/data/departments.js`.
-2. For each department, runs `getDocs(collection(db, dept.name))` to count papers and collect unique `year` values.
+2. For each department, runs `getDocs(collection(db, dept.name))` to count papers and collect unique examination periods.
 3. Renders `DepartmentCard` links to `/search?q={departmentName}`.
 4. Renders `BrowseByExamPeriod` links to `/search?years={period}`.
 
 ### Search page (`/search`)
 
 1. Fetches all documents from all five department collections in parallel.
-2. Normalizes each document into the paper object shape.
+2. Normalizes each document into the paper object shape (inline logic; mirrors `normalizePaper()`).
 3. Applies:
    - Text filter from `?q=` via `filterPapers()` in `src/data/papers.js`
    - Department filter from sidebar state
-   - Year filter from `?years=` (comma-separated in URL) or sidebar
+   - Year filter from `?years=` (comma-separated) or sidebar
 4. Displays results as compact cards (`PaperCard`) or list rows (`PaperListItem`).
 5. On Firestore error: falls back to local `papers` array and shows a note.
 
@@ -277,37 +331,74 @@ After fetching, papers are shaped roughly as:
 1. Reads `id` from the URL and optional `dept` from `?dept=`.
 2. If `dept` is set, fetches `doc(db, dept, id)` directly.
 3. Otherwise searches all department collections for a matching document ID.
-4. Builds Google Drive **preview** URL (`.../preview`) and **download** URL (`uc?export=download&id=...`).
-5. Loads up to 3 related papers from the same department.
+4. Builds Google Drive **preview** and **download** URLs from the stored drive link.
+5. Loads related papers from the same department.
 6. On failure: falls back to `getPaperById()` from local data.
 
 ### Google Drive link handling
 
-Shared logic (in admin, paper detail, and `PaperCard`):
+Centralized in `src/lib/papers.js` (`extractDriveId`, `getPreviewUrl`, `getDownloadUrl`):
 
 1. **Extract file ID** from URLs like `/d/{id}/` or `?id={id}`.
 2. **Preview:** `https://drive.google.com/file/d/{id}/preview`
 3. **Download:** `https://drive.google.com/uc?export=download&id={id}`
 4. Direct `.pdf` URLs are supported for preview where applicable.
 
-Files must be shared appropriately on Google Drive (e.g. “Anyone with the link”) for preview/download to work in the browser.
+Files must be shared on Google Drive (e.g. “Anyone with the link”) for preview/download to work.
+
+### Admin dashboard (`/admin`)
+
+1. Calls `fetchAllPapers()` to load all papers from every department.
+2. Computes `getDepartmentStats()` and `sortPapersByDate()` for the overview.
+3. Shows stats cards and a compact `PapersTable` of the 8 most recently added papers.
+
+### Admin manage papers (`/admin/papers`)
+
+1. Loads all papers sorted by `createdAt` (newest first).
+2. Client-side search (`filterAdminPapers`) by code, title, instructor, year, or department.
+3. **Edit** links to `/admin/papers/{department}/{docId}`.
+4. **Delete** opens `ConfirmDialog`, then calls `deletePaper(department, docId)`.
+5. **View** opens the public paper page in a new tab.
 
 ### Admin add paper (`/admin/add-paper`)
 
-1. Client form collects subject code, name, year, department, instructor, drive link.
-2. On submit, calls `addDoc(collection(db, department), payload)` with `serverTimestamp()` for `createdAt`.
-3. Shows inline success/error status; resets form on success.
-4. Live PDF preview in the form uses the same Drive URL helpers.
+1. Shared `PaperForm` collects subject code, name, year, department, instructor, drive link.
+2. On submit, `createPaper(form)` → `addDoc` with `serverTimestamp()` for `createdAt`.
+3. Live PDF preview in the form uses `getPreviewUrl` / `getDownloadUrl`.
 
-**Security note:** There is no login or middleware. Anyone who knows the URL can add papers if Firestore security rules allow writes. Restrict writes in the [Firebase Console](https://console.firebase.google.com) for production.
+### Admin edit paper (`/admin/papers/[department]/[id]`)
+
+1. Loads paper via `fetchPaperById(department, docId)` and populates `PaperForm`.
+2. On submit, `updatePaper()` writes changes with `updateDoc`.
+3. If the **department is changed**, the paper is **moved**: a new document is created in the target collection and the old document is deleted.
+
+---
+
+## Shared Library (`src/lib/papers.js`)
+
+Admin and future refactors should use this module. It exports:
+
+| Export | Purpose |
+|--------|---------|
+| `extractDriveId`, `getPreviewUrl`, `getDownloadUrl` | Google Drive URL helpers |
+| `getInstructorValue`, `getExamPeriodValue` | Read legacy/alternate field names |
+| `normalizePaper` | Map Firestore doc → client paper object |
+| `formToPayload`, `paperToForm` | Convert between form state and Firestore fields |
+| `fetchAllPapers`, `fetchPaperById` | Read from all departments or one document |
+| `createPaper`, `updatePaper`, `deletePaper` | Firestore CRUD |
+| `sortPapersByDate`, `getDepartmentStats`, `filterAdminPapers` | Admin list helpers |
+
+`src/lib/constants.js` provides `DEPARTMENT_NAMES`, `ADMIN_NAV`, and `ARICT_OFFICIAL_EMAIL`.
+
+**Note:** Public search and paper detail pages still contain some duplicated normalization and Drive helpers inline; admin flows use the shared library.
 
 ---
 
 ## Environment Variables
 
-Firebase is configured via **public** env vars (prefixed with `NEXT_PUBLIC_` so they are available in the browser).
+Create **`.env.local`** in the project root (Next.js loads this automatically).
 
-Create a file named **`.env.local`** in the project root (recommended; Next.js loads this automatically):
+### Firebase (required)
 
 ```env
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
@@ -320,21 +411,35 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
 Values come from **Firebase Console → Project settings → Your apps → Web app config**.
 
+Initialization: `src/lib/firebase.js`.
+
+### EmailJS (optional — for Request Paper)
+
+```env
+NEXT_PUBLIC_EMAILJS_SERVICE_ID=your_service_id
+NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=your_template_id
+NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
+```
+
+Set up a service and template at [emailjs.com](https://www.emailjs.com/) that sends to `arict@as.rjt.ac.lk` (see `ARICT_OFFICIAL_EMAIL` in `src/lib/constants.js`). Template variables used by the app:
+
+| Variable | Source |
+|----------|--------|
+| `to_email` | Official ARICT email |
+| `from_name`, `student_name` | Student name |
+| `reply_to`, `student_email` | Student email |
+| `subject_code`, `subject_name` | Paper details |
+| `department`, `exam_year` | Department and examination period |
+| `message` | Optional additional details |
+
+If EmailJS is not configured, the Request Paper modal shows a friendly error asking students to contact ARICT directly.
+
 | File | Notes |
 |------|--------|
-| `.env.local` | Standard Next.js local env file (ignored by git via `.env*`) |
-| `env.local` | Also listed in `.gitignore`; use `.env.local` for Next.js to load vars automatically |
+| `.env.local` | Standard Next.js local env (gitignored via `.env*`) |
+| `env.local` | Also gitignored; prefer `.env.local` for automatic loading |
 
-**Do not commit** real credentials. Copy from Firebase Console for each environment.
-
-Initialization lives in `src/lib/firebase.js`:
-
-```js
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-// ... reads process.env.NEXT_PUBLIC_FIREBASE_*
-export const db = getFirestore(app);
-```
+**Do not commit** real credentials.
 
 ---
 
@@ -345,22 +450,19 @@ export const db = getFirestore(app);
 - [Node.js](https://nodejs.org) 18+ (LTS recommended)
 - npm (or yarn / pnpm / bun)
 - A Firebase project with Firestore enabled
-- Firestore collections created for each department name (collections can be empty initially)
+- Firestore collections for each department name (can start empty)
+- (Optional) EmailJS account for paper requests
 
 ### Install and run
 
 ```bash
-# Clone the repository
 git clone <repository-url>
-cd arict-paper-portal
+cd arict-past-paper-portal
 
-# Install dependencies
 npm install
 
-# Add Firebase config (see Environment Variables)
-# Create .env.local with your NEXT_PUBLIC_FIREBASE_* values
+# Create .env.local with NEXT_PUBLIC_FIREBASE_* (and EmailJS vars if needed)
 
-# Start development server
 npm run dev
 ```
 
@@ -373,7 +475,7 @@ npm run build
 npm start
 ```
 
-Set the same `NEXT_PUBLIC_FIREBASE_*` variables in your hosting provider (e.g. Vercel project settings).
+Set the same environment variables in your hosting provider (e.g. Vercel project settings).
 
 ---
 
@@ -383,21 +485,34 @@ Set the same `NEXT_PUBLIC_FIREBASE_*` variables in your hosting provider (e.g. V
 
 | URL (local) | Action |
 |-------------|--------|
-| [http://localhost:3000/admin/add-paper](http://localhost:3000/admin/add-paper) | Open the add-paper form |
+| [http://localhost:3000/admin](http://localhost:3000/admin) | Dashboard |
+| [http://localhost:3000/admin/add-paper](http://localhost:3000/admin/add-paper) | Add a paper |
+| [http://localhost:3000/admin/papers](http://localhost:3000/admin/papers) | Manage papers |
 
-The admin UI uses the same global layout (public header and footer) as the rest of the site.
+The admin UI uses its own layout (`src/app/admin/layout.js`): sidebar navigation and top bar — **not** the public site header/footer.
 
-### Add a paper
+### Typical workflows
 
-1. Open `/admin/add-paper`.
+**Add a paper**
+
+1. Open `/admin/add-paper` (or use **Add Paper** on the dashboard).
 2. Fill required fields: Subject Code, Subject Name, Year, Department.
-3. Optionally add Instructor and a Google Drive link.
-4. Use **PDF Preview** to verify the Drive link.
-5. Click **Add Paper** — document is created in the selected department collection.
+3. Optionally add Instructor and a Google Drive link; use **PDF Preview** to verify.
+4. Click **Add Paper**.
 
-### Firestore setup for admin
+**Edit or move a paper**
 
-Ensure your Firestore rules match your security needs. For development only, rules might allow open read/write; for production, restrict `write` to authenticated admins.
+1. Open `/admin/papers`, find the paper, click **Edit**.
+2. Update fields; change Department to move the document to another collection.
+3. Click **Save Changes**.
+
+**Delete a paper**
+
+1. On `/admin/papers`, click **Delete** and confirm in the dialog.
+
+### Firestore security
+
+There is **no login** or middleware protecting admin routes. Restrict writes in [Firebase Console](https://console.firebase.google.com) for production.
 
 Example (conceptual — adjust for your project):
 
@@ -415,22 +530,44 @@ service cloud.firestore {
 
 ---
 
+## Request a Paper (EmailJS)
+
+Students open **Request Paper** from the public header (desktop and mobile). The modal (`src/components/RequestPaperModal.js`) collects:
+
+- Name, email (required)
+- Subject code, subject name, department, examination period (required)
+- Additional details (optional)
+
+On submit, EmailJS sends the request to `arict@as.rjt.ac.lk`. Configure the three `NEXT_PUBLIC_EMAILJS_*` variables for this to work in production.
+
+---
+
 ## Components
+
+### Public
 
 | Component | Role |
 |-----------|------|
-| `Header` | Top navigation, mobile menu |
-| `Footer` | Branding, department links, social placeholders |
+| `Header` | Navigation, mobile menu, Request Paper button |
+| `Footer` | Branding, department links |
 | `SearchBar` | Hero and inline search; navigates to `/search?q=` |
-| `DepartmentCard` | Department tile with paper count; links to search |
-| `BrowseByExamPeriod` | Exam period cards; links to `/search?years=` |
-| `FilterSidebar` | Department and year filters on search page |
-| `PaperCard` / `PaperListItem` | Paper summary in grid or list view |
-| `Pagination` | UI pagination (search page; total pages currently static) |
-| `Breadcrumb` | Trail on paper detail page |
-| `Chip` | Tags for year, department, type |
-| `CopyLinkButton` | Copy current page URL |
-| `RelatedPaperCard` | Related paper links on detail page |
+| `RequestPaperModal` | Missing-paper request form (EmailJS) |
+| `DepartmentCard` | Department tile with paper count |
+| `BrowseByExamPeriod` | Exam period cards → `/search?years=` |
+| `FilterSidebar` | Department and year filters on search |
+| `PaperCard` / `PaperListItem` | Paper summary in grid or list |
+| `Pagination` | UI pagination (placeholder total pages) |
+| `Breadcrumb`, `Chip`, `CopyLinkButton`, `RelatedPaperCard` | Paper detail helpers |
+
+### Admin
+
+| Component | Role |
+|-----------|------|
+| `AdminSidebar` | Admin navigation + link back to public site |
+| `StatsCard` | Dashboard metric tiles |
+| `PapersTable` | Sortable table with View / Edit / Delete |
+| `PaperForm` | Shared add/edit form with Drive PDF preview |
+| `ConfirmDialog` | Delete confirmation |
 
 ---
 
@@ -439,8 +576,9 @@ service cloud.firestore {
 - Global styles: `src/app/globals.css`
 - CSS variables for colors, spacing, typography (e.g. `--color-primary`, `--color-surface`)
 - Utility classes: `text-headline-lg`, `text-body-md`, `btn`, `btn-primary`, `card`, `container`
-- `page.module.css` exists for the default Next.js template but the home page primarily uses global classes
-- Responsive layout with a collapsible mobile nav in `Header`
+- **Public shell:** `public-shell` layout with header/footer
+- **Admin shell:** `admin-shell`, `admin-sidebar`, `admin-content` for the back-office UI
+- Responsive layouts with collapsible mobile nav (public header and admin sidebar)
 
 ---
 
@@ -451,14 +589,9 @@ service cloud.firestore {
 - Firestore fetch fails on `/search`
 - Paper is not found in Firestore on `/paper/[id]`
 
-Helpers exported from `papers.js`:
+Helpers: `getPaperById`, `getRelatedPapers`, `filterPapers`, `searchPapers`.
 
-- `getPaperById(id)`
-- `getRelatedPapers(currentId, limit)`
-- `filterPapers(sourcePapers, query, filters)`
-- `searchPapers(query, filters)` — filters only the local array
-
-Department definitions in `src/data/departments.js` are always used for UI labels and icons; counts on the home page come from Firestore when available.
+Department definitions in `src/data/departments.js` are always used for UI labels and icons; home page counts come from Firestore when available.
 
 ---
 
@@ -478,10 +611,10 @@ Department definitions in `src/data/departments.js` are always used for UI label
 Well-suited for [Vercel](https://vercel.com) or any Node host that supports Next.js:
 
 1. Connect the Git repository.
-2. Set all `NEXT_PUBLIC_FIREBASE_*` environment variables in the dashboard.
+2. Set `NEXT_PUBLIC_FIREBASE_*` and (if used) `NEXT_PUBLIC_EMAILJS_*` in the dashboard.
 3. Deploy; Vercel runs `next build` by default.
 
-Ensure Firestore rules and Google Drive sharing are configured for production traffic.
+Ensure Firestore rules, Google Drive sharing, and EmailJS templates are configured for production.
 
 ---
 
@@ -489,13 +622,11 @@ Ensure Firestore rules and Google Drive sharing are configured for production tr
 
 | Area | Current behavior |
 |------|------------------|
-| **Authentication** | No login; admin routes are public |
-| **Admin dashboard** | Only add-paper exists; no `/admin` home or manage/edit/delete UI |
+| **Authentication** | No login; admin routes are public if the URL is known |
 | **Pagination** | Search page uses a fixed `totalPages={3}` placeholder |
 | **PDF storage** | PDFs live on Google Drive only, not Firebase Storage |
-| **Duplicate logic** | Drive URL helpers and instructor parsing repeated across several files |
-| **Env file naming** | Project may use `env.local`; Next.js officially loads `.env.local` |
-| **Header Login/Register** | Link to `/search`, not a real auth flow |
+| **Code duplication** | Public search/detail pages duplicate some logic from `src/lib/papers.js` |
+| **Admin “Coming Soon”** | Analytics, bulk import, and user management are not built |
 
 ---
 
@@ -519,11 +650,11 @@ See [LICENSE](./LICENSE) in the repository root.
 ## Quick Reference
 
 ```text
-Public:     /  /search  /paper/[id]  /about  /faculty
-Admin:      /admin/add-paper
+Public:     /  /search  /paper/[id]  /about  /faculty  (+ Request Paper modal)
+Admin:      /admin  /admin/add-paper  /admin/papers  /admin/papers/[dept]/[id]
 Firestore:  One collection per department name
 PDFs:       Google Drive links → preview + download URLs
-Config:     .env.local → NEXT_PUBLIC_FIREBASE_*
+Email:      EmailJS → arict@as.rjt.ac.lk (paper requests)
+Config:     .env.local → NEXT_PUBLIC_FIREBASE_*  +  NEXT_PUBLIC_EMAILJS_*
+Shared:     src/lib/papers.js (admin CRUD + normalization)
 ```
-
-For questions about extending the admin area (dashboard, manage papers, auth), see the implementation plan discussed in project issues or team docs before building new routes under `src/app/admin/`.
