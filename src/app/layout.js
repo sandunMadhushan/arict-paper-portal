@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata = {
   title: "ARICT Past Paper Portal",
   description:
-    "Search through thousands of past examination papers, meticulously organized by department and course for ARICT students. Association of Rajarata Information & Communication Technology.",
+    "Search through thousands of past examination papers, meticulously organized by department and paper for ARICT students. Association of Rajarata Information & Communication Technology.",
   keywords: [
     "ARICT",
     "past papers",
@@ -18,7 +18,7 @@ export const metadata = {
   openGraph: {
     title: "ARICT Past Paper Portal",
     description:
-      "Access years of academic excellence. Search past examination papers organized by department and course.",
+      "Access years of academic excellence. Search past examination papers organized by department and paper.",
     type: "website",
   },
 };

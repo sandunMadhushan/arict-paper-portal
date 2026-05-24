@@ -198,7 +198,7 @@ export default function PaperDetailPage() {
     if (!paper) return [];
     return [
       { label: "Home", href: "/" },
-      { label: "Courses", href: "/search" },
+      { label: "Papers", href: "/search" },
       {
         label: paper.departmentFull,
         href: `/search?q=${encodeURIComponent(paper.departmentFull)}`,

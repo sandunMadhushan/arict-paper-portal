@@ -7,7 +7,7 @@ export const metadata = {
 export default function AboutPage() {
   const stats = [
     { number: "3,760+", label: "Past Papers" },
-    { number: "143", label: "Courses Covered" },
+    { number: "143", label: "Papers Covered" },
     { number: "4", label: "Departments" },
     { number: "5,000+", label: "Active Students" },
   ];
@@ -21,7 +21,7 @@ export default function AboutPage() {
     {
       title: "Academic Resource Hub",
       description:
-        "We curate and organize thousands of past examination papers across multiple departments, ensuring students have access to high-quality study materials. Each paper is carefully categorized by department, course code, academic year, and semester for effortless navigation.",
+        "We curate and organize thousands of past examination papers across multiple departments, ensuring students have access to high-quality study materials. Each paper is carefully categorized by department, subject code, academic year, and semester for effortless navigation.",
     },
     {
       title: "Community Driven",

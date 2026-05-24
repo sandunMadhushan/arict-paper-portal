@@ -1,14 +1,32 @@
 import Link from "next/link";
 import Chip from "./Chip";
-import CopyLinkButton from "./CopyLinkButton";
+const extractDriveId = (url = "") => {
+  if (!url) return "";
+  const directMatch = url.match(/\/d\/([^/]+)/);
+  if (directMatch) return directMatch[1];
+  const paramMatch = url.match(/[?&]id=([^&]+)/);
+  if (paramMatch) return paramMatch[1];
+  return "";
+};
 
-export default function PaperCard({ paper }) {
+const getDownloadUrl = (url = "") => {
+  const id = extractDriveId(url);
+  if (id) return `https://drive.google.com/uc?export=download&id=${id}`;
+  return url || "";
+};
+
+export default function PaperCard({ paper, compact = false }) {
   const encodedId = encodeURIComponent(paper.docId || paper.id);
   const paperUrl = `/paper/${encodedId}?dept=${encodeURIComponent(paper.departmentFull || paper.department || "")}`;
+  const instructorName = paper.instructor && paper.instructor.trim() ? paper.instructor.trim() : "";
+  const downloadUrl = getDownloadUrl(paper.driveLink || "");
   
   return (
-    <div className="card paper-card" id={`paper-card-${paper.id}`}>
-      <div>
+    <div
+      className={`card paper-card${compact ? " paper-card-compact" : ""}`}
+      id={`paper-card-${paper.id}`}
+    >
+      <div className="paper-card-body">
         <div className="paper-card-chips">
           <Chip icon="calendar_today">{paper.year}</Chip>
           <Chip>{paper.department}</Chip>
@@ -28,12 +46,43 @@ export default function PaperCard({ paper }) {
         </div>
         <div className="paper-card-code">{paper.courseCode}</div>
         <h3>{paper.title}</h3>
+        {instructorName && (
+          <p className="paper-card-instructor">
+            Instructor: <span>{instructorName}</span>
+          </p>
+        )}
         {paper.description && (
           <p className="paper-card-description">{paper.description}</p>
         )}
       </div>
-      <div className="paper-card-footer" style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-        <CopyLinkButton url={paperUrl} className="btn" />
+      <div className="paper-card-footer">
+        {downloadUrl ? (
+          <a
+            href={downloadUrl}
+            className="btn btn-primary"
+            target="_blank"
+            rel="noreferrer"
+            id={`download-${paper.id}`}
+          >
+            Download
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: "18px" }}
+            >
+              download
+            </span>
+          </a>
+        ) : (
+          <button className="btn btn-primary" disabled id={`download-${paper.id}`}>
+            Download
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: "18px" }}
+            >
+              download
+            </span>
+          </button>
+        )}
         <Link
           href={paperUrl}
           className="btn btn-secondary"

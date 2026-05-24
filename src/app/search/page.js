@@ -53,14 +53,24 @@ const getInstructorValue = (data = {}) => {
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
+  const yearsParam = searchParams.get("years") || "";
 
-  const [viewMode, setViewMode] = useState("grid"); // grid, compact, list
+  const [viewMode, setViewMode] = useState("compact"); // compact, list
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const parsedYears = yearsParam
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    setSelectedYears(parsedYears);
+  }, [yearsParam]);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,13 +92,14 @@ function SearchResultsContent() {
             const instructor = getInstructorValue(docData);
             const driveLink = docData["drive link"] || docData.driveLink || "";
             const year = docData.year || "";
+            const description = docData.description || "";
 
             return {
               id: `${collectionName}-${doc.id}`,
               docId: doc.id,
               courseCode: subjectCode,
               title: subjectName,
-              description: instructor ? `Instructor: ${instructor}` : "",
+              description,
               year,
               department: collectionName,
               departmentFull: collectionName,
@@ -158,7 +169,7 @@ function SearchResultsContent() {
         {/* Header */}
         <div className="search-page-header">
           <div>
-            <h1 className="text-headline-lg">{query ? "Search Results" : "Courses"}</h1>
+            <h1 className="text-headline-lg">{query ? "Search Results" : "Papers"}</h1>
             <p className="text-body-md" style={{ color: "var(--color-secondary)" }}>
               Showing {totalResults} past papers
               {query && (
@@ -189,16 +200,6 @@ function SearchResultsContent() {
           <div>
             {/* View Toggle */}
             <div className="view-toggle" id="view-toggle">
-              <button
-                className={`view-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
-                onClick={() => setViewMode("grid")}
-                aria-label="Grid view"
-                title="Grid view"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-                  grid_view
-                </span>
-              </button>
               <button
                 className={`view-toggle-btn ${viewMode === "compact" ? "active" : ""}`}
                 onClick={() => setViewMode("compact")}
@@ -235,14 +236,7 @@ function SearchResultsContent() {
                 ))}
               </div>
             ) : (
-              <div
-                className="results-grid"
-                style={
-                  viewMode === "compact"
-                    ? { gridTemplateColumns: "repeat(3, 1fr)" }
-                    : undefined
-                }
-              >
+              <div className="results-grid results-grid-compact">
                 {displayResults.map((paper) => (
                   <PaperCard
                     key={paper.id}

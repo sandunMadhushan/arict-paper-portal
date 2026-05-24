@@ -1,11 +1,25 @@
 import Link from "next/link";
 import Chip from "./Chip";
-import CopyLinkButton from "./CopyLinkButton";
+const extractDriveId = (url = "") => {
+  if (!url) return "";
+  const directMatch = url.match(/\/d\/([^/]+)/);
+  if (directMatch) return directMatch[1];
+  const paramMatch = url.match(/[?&]id=([^&]+)/);
+  if (paramMatch) return paramMatch[1];
+  return "";
+};
+
+const getDownloadUrl = (url = "") => {
+  const id = extractDriveId(url);
+  if (id) return `https://drive.google.com/uc?export=download&id=${id}`;
+  return url || "";
+};
 
 export default function PaperListItem({ paper }) {
   const encodedId = encodeURIComponent(paper.docId || paper.id);
   const paperUrl = `/paper/${encodedId}?dept=${encodeURIComponent(paper.departmentFull || paper.department || "")}`;
   const instructorName = paper.instructor && paper.instructor.trim() ? paper.instructor.trim() : "-";
+  const downloadUrl = getDownloadUrl(paper.driveLink || "");
   
   return (
     <div className="paper-list-item" id={`paper-list-${paper.id}`}>
@@ -35,7 +49,33 @@ export default function PaperListItem({ paper }) {
         )}
       </div>
       <div className="paper-list-item-action" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        <CopyLinkButton url={paperUrl} className="btn" />
+        {downloadUrl ? (
+          <a
+            href={downloadUrl}
+            className="btn btn-primary"
+            target="_blank"
+            rel="noreferrer"
+            id={`list-download-${paper.id}`}
+          >
+            Download
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: "18px" }}
+            >
+              download
+            </span>
+          </a>
+        ) : (
+          <button className="btn btn-primary" disabled id={`list-download-${paper.id}`}>
+            Download
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: "18px" }}
+            >
+              download
+            </span>
+          </button>
+        )}
         <Link
           href={paperUrl}
           className="btn btn-secondary"
