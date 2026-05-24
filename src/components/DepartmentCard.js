@@ -49,7 +49,7 @@ export default function DepartmentCard({ department, index }) {
             <span className="dept-card-stat-value">
               {hasCourseCount ? department.courseCount.toLocaleString() : "—"}
             </span>
-            <span className="dept-card-stat-label">Courses</span>
+            <span className="dept-card-stat-label">Subjects</span>
           </div>
           <div className="dept-card-stat">
             <span className="dept-card-stat-value">{resourceTotal}</span>

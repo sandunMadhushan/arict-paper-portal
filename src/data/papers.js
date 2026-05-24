@@ -212,7 +212,8 @@ export function filterPapers(sourcePapers = [], query, filters = {}) {
         p.courseCode.toLowerCase().includes(q) ||
         p.departmentFull.toLowerCase().includes(q) ||
         (p.department || "").toLowerCase().includes(q) ||
-        (p.description || "").toLowerCase().includes(q)
+        (p.description || "").toLowerCase().includes(q) ||
+        (p.instructor || "").toLowerCase().includes(q)
     );
   }
 
