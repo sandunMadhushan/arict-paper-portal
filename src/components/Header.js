@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import RequestPaperModal from "@/components/RequestPaperModal";
 
 const navLinks = [
   { href: "/", label: "Departments" },
@@ -14,7 +15,13 @@ const navLinks = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
   const pathname = usePathname();
+
+  const openRequestModal = () => {
+    setMobileOpen(false);
+    setRequestOpen(true);
+  };
 
   return (
     <>
@@ -44,24 +51,14 @@ export default function Header() {
           </nav>
 
           <div className="header-actions">
-            <Link href="/search" className="btn btn-secondary" id="login-btn">
-              Login
-            </Link>
-            <Link
-              href="/search"
+            <button
+              type="button"
               className="btn btn-primary"
-              id="register-btn"
-              style={{ display: "none" }}
+              id="request-paper-btn"
+              onClick={openRequestModal}
             >
-              Register
-            </Link>
-            <Link
-              href="/search"
-              className="btn btn-primary register-desktop"
-              id="register-btn-desktop"
-            >
-              Register
-            </Link>
+              Request Paper
+            </button>
             <button
               className="header-hamburger"
               onClick={() => setMobileOpen(true)}
@@ -74,13 +71,11 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
       <div
         className={`mobile-menu-overlay ${mobileOpen ? "open" : ""}`}
         onClick={() => setMobileOpen(false)}
       />
 
-      {/* Mobile Menu */}
       <div className={`mobile-menu ${mobileOpen ? "open" : ""}`} id="mobile-menu">
         <div className="mobile-menu-header">
           <Link href="/" className="header-brand" onClick={() => setMobileOpen(false)}>
@@ -110,25 +105,17 @@ export default function Header() {
         </nav>
 
         <div className="mobile-menu-actions">
-          <Link href="/search" className="btn btn-secondary" onClick={() => setMobileOpen(false)}>
-            Login
-          </Link>
-          <Link href="/search" className="btn btn-primary" onClick={() => setMobileOpen(false)}>
-            Register
-          </Link>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openRequestModal}
+          >
+            Request Paper
+          </button>
         </div>
       </div>
 
-      <style jsx>{`
-        .register-desktop {
-          display: inline-flex;
-        }
-        @media (max-width: 639px) {
-          .register-desktop {
-            display: none;
-          }
-        }
-      `}</style>
+      <RequestPaperModal open={requestOpen} onClose={() => setRequestOpen(false)} />
     </>
   );
 }
