@@ -2639,3 +2639,72 @@ ol {
     flex-direction: column;
   }
 }
+
+/* --- Request Paper Modal --- */
+.request-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 28, 29, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-md);
+}
+
+.request-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.request-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.request-modal-subtitle,
+.request-modal-intro {
+  color: var(--color-secondary);
+  margin-top: var(--space-xs);
+}
+
+.request-modal-intro a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.request-modal-close {
+  border: 0;
+  background: transparent;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.request-modal-form {
+  margin-top: var(--space-md);
+}
+
+.request-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .request-modal-actions {
+    flex-direction: column;
+  }
+
+  .request-modal-actions .btn {
+    width: 100%;
+  }
+}
