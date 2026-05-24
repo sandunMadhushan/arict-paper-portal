@@ -51,12 +51,14 @@ export default function AddPaperPage() {
   };
 
   return (
-    <section className="admin-page form-page" id="add-paper-page">
-      <div className="form-header">
-        <h1 className="text-headline-lg">Add Paper</h1>
-        <p className="text-body-md">
-          Add a new past paper to the selected Firestore department.
-        </p>
+    <section className="admin-page" id="add-paper-page">
+      <div className="admin-page-header">
+        <div>
+          <h1 className="text-headline-lg">Add Paper</h1>
+          <p className="text-body-md">
+            Add a new past paper to the selected Firestore department.
+          </p>
+        </div>
       </div>
 
       <PaperForm
