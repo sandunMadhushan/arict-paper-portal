@@ -53,7 +53,7 @@ export default function Header() {
           <div className="header-actions">
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary btn-request-paper-mobile"
               id="request-paper-btn"
               onClick={openRequestModal}
             >

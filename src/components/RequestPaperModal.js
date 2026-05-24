@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import emailjs from "@emailjs/browser";
 import { ARICT_OFFICIAL_EMAIL, DEPARTMENT_NAMES } from "@/lib/constants";
 
@@ -21,11 +22,27 @@ const emailJsConfig = {
 };
 
 export default function RequestPaperModal({ open, onClose }) {
+  const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState({ type: "idle", message: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -87,7 +104,7 @@ export default function RequestPaperModal({ open, onClose }) {
           exam_year: form.examYear,
           message: form.message || "No additional details provided.",
         },
-        { publicKey: emailJsConfig.publicKey }
+        { publicKey: emailJsConfig.publicKey },
       );
 
       setStatus({
@@ -109,193 +126,168 @@ export default function RequestPaperModal({ open, onClose }) {
     }
   };
 
-  return (
-    <motionRequestModalOverlay onClose={handleClose}>
-      <motionRequestModalCard
-        form={form}
-        status={status}
-        submitting={submitting}
-        handleChange={handleChange}
-        handleClose={handleClose}
-        handleSubmit={handleSubmit}
-      />
-    </motionRequestModalOverlay>
-  );
-}
-
-function motionRequestModalOverlay({ onClose, children }) {
-  return (
-    <div className="request-modal-overlay" role="presentation" onClick={onClose}>
-      {children}
-    </div>
-  );
-}
-
-function motionRequestModalCard({
-  form,
-  status,
-  submitting,
-  handleChange,
-  handleClose,
-  handleSubmit,
-}) {
-  return (
+  return createPortal(
     <div
-      className="card request-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="request-paper-title"
-      onClick={(event) => event.stopPropagation()}
+      className="request-modal-overlay"
+      role="presentation"
+      onClick={handleClose}
     >
-      <div className="request-modal-header">
-        <div>
-          <h2 id="request-paper-title" className="text-headline-sm">
-            Request a Paper
-          </h2>
-          <p className="text-body-md request-modal-subtitle">
-            Submit details for a missing past paper.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="request-modal-close"
-          onClick={handleClose}
-          disabled={submitting}
-          aria-label="Close request form"
-        >
-          <span className="material-symbols-outlined">close</span>
-        </button>
-      </div>
-
-      <p className="text-body-md request-modal-intro">
-        Cannot find a past paper? Submit a request and the ARICT team at{" "}
-        <a href={`mailto:${ARICT_OFFICIAL_EMAIL}`}>{ARICT_OFFICIAL_EMAIL}</a>{" "}
-        will review it.
-      </p>
-
-      <form className="request-modal-form" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <div className="form-field">
-            <label htmlFor="studentName">Your Name *</label>
-            <input
-              id="studentName"
-              name="studentName"
-              className="input-field"
-              value={form.studentName}
-              onChange={handleChange}
-              placeholder="Full name"
-              required
-            />
+      <div
+        className="card request-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="request-paper-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="request-modal-header">
+          <div>
+            <h2 id="request-paper-title" className="text-headline-sm">
+              Request a Paper
+            </h2>
+            <p className="text-body-md request-modal-subtitle">
+              Submit details for a missing past paper.
+            </p>
           </div>
-          <div className="form-field">
-            <label htmlFor="studentEmail">Your Email *</label>
-            <input
-              id="studentEmail"
-              name="studentEmail"
-              type="email"
-              className="input-field"
-              value={form.studentEmail}
-              onChange={handleChange}
-              placeholder="you@student.rjt.ac.lk"
-              required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="subjectCode">Subject Code *</label>
-            <input
-              id="subjectCode"
-              name="subjectCode"
-              className="input-field"
-              value={form.subjectCode}
-              onChange={handleChange}
-              placeholder="ICT3214"
-              required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="subjectName">Subject Name *</label>
-            <input
-              id="subjectName"
-              name="subjectName"
-              className="input-field"
-              value={form.subjectName}
-              onChange={handleChange}
-              placeholder="Mobile Application Development"
-              required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="department">Department *</label>
-            <select
-              id="department"
-              name="department"
-              className="input-field"
-              value={form.department}
-              onChange={handleChange}
-              required
-            >
-              <option value="" disabled>
-                Select department
-              </option>
-              {DEPARTMENT_NAMES.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
-          <motionRequestModalExamYearField form={form} handleChange={handleChange} />
-          <div className="form-field form-field--full">
-            <label htmlFor="message">Additional Details</label>
-            <textarea
-              id="message"
-              name="message"
-              className="input-field"
-              value={form.message}
-              onChange={handleChange}
-              placeholder="Any extra information that may help us locate the paper..."
-              rows={4}
-            />
-          </div>
-        </div>
-
-        {status.type !== "idle" && (
-          <div className={`form-status form-status--${status.type}`}>
-            {status.message}
-          </div>
-        )}
-
-        <div className="request-modal-actions">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="request-modal-close"
             onClick={handleClose}
             disabled={submitting}
+            aria-label="Close request form"
           >
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? "Sending..." : "Send Request"}
+            <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-      </form>
-    </div>
-  );
-}
 
-function motionRequestModalExamYearField({ form, handleChange }) {
-  return (
-    <div className="form-field">
-      <label htmlFor="examYear">Examination Period *</label>
-      <input
-        id="examYear"
-        name="examYear"
-        className="input-field"
-        value={form.examYear}
-        onChange={handleChange}
-        placeholder="October | November 2025"
-        required
-      />
-    </div>
+        <p className="text-body-md request-modal-intro">
+          Cannot find a past paper? Submit a request and the ARICT team at{" "}
+          <a href={`mailto:${ARICT_OFFICIAL_EMAIL}`}>{ARICT_OFFICIAL_EMAIL}</a>{" "}
+          will review it.
+        </p>
+
+        <form className="request-modal-form" onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-field">
+              <label htmlFor="studentName">Your Name *</label>
+              <input
+                id="studentName"
+                name="studentName"
+                className="input-field"
+                value={form.studentName}
+                onChange={handleChange}
+                placeholder="Full name"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="studentEmail">Your Email *</label>
+              <input
+                id="studentEmail"
+                name="studentEmail"
+                type="email"
+                className="input-field"
+                value={form.studentEmail}
+                onChange={handleChange}
+                placeholder="ict20*****@rjt.ac.lk"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="subjectCode">Subject Code *</label>
+              <input
+                id="subjectCode"
+                name="subjectCode"
+                className="input-field"
+                value={form.subjectCode}
+                onChange={handleChange}
+                placeholder="ICT3214"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="subjectName">Subject Name *</label>
+              <input
+                id="subjectName"
+                name="subjectName"
+                className="input-field"
+                value={form.subjectName}
+                onChange={handleChange}
+                placeholder="Mobile Application Development"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="department">Department *</label>
+              <select
+                id="department"
+                name="department"
+                className="input-field"
+                value={form.department}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>
+                  Select department
+                </option>
+                {DEPARTMENT_NAMES.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="examYear">Examination Period *</label>
+              <input
+                id="examYear"
+                name="examYear"
+                className="input-field"
+                value={form.examYear}
+                onChange={handleChange}
+                placeholder="October | November 2025"
+                required
+              />
+            </div>
+            <div className="form-field form-field--full">
+              <label htmlFor="message">Additional Details</label>
+              <textarea
+                id="message"
+                name="message"
+                className="input-field"
+                value={form.message}
+                onChange={handleChange}
+                placeholder="Any extra information that may help us locate the paper..."
+                rows={4}
+              />
+            </div>
+          </div>
+
+          {status.type !== "idle" && (
+            <div className={`form-status form-status--${status.type}`}>
+              {status.message}
+            </div>
+          )}
+
+          <div className="request-modal-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting ? "Sending..." : "Send Request"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
   );
 }

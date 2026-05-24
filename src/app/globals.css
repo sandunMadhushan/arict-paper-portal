@@ -577,7 +577,7 @@ ol {
     display: none;
   }
 
-  .header-actions .btn-login-mobile {
+  .header-actions .btn-request-paper-mobile {
     display: inline-flex;
   }
 }
@@ -2648,7 +2648,7 @@ ol {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 200;
   padding: var(--space-md);
 }
 
