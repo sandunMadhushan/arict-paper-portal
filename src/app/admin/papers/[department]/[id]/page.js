@@ -119,13 +119,15 @@ export default function EditPaperPage() {
   }
 
   return (
-    <section className="admin-page form-page">
-      <div className="form-header">
-        <h1 className="text-headline-lg">Edit Paper</h1>
-        <p className="text-body-md">
-          Update paper details or move it to another department.
-        </p>
-        <Link href="/admin/papers" className="btn btn-secondary admin-back-link">
+    <section className="admin-page">
+      <div className="admin-page-header">
+        <div>
+          <h1 className="text-headline-lg">Edit Paper</h1>
+          <p className="text-body-md">
+            Update paper details or move it to another department.
+          </p>
+        </div>
+        <Link href="/admin/papers" className="btn btn-secondary">
           Back to Manage Papers
         </Link>
       </div>
