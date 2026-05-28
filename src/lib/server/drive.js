@@ -1,24 +1,67 @@
 import { google } from "googleapis";
+import { createPrivateKey } from "crypto";
 
 const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 function normalizePrivateKey(rawKey = "") {
   const trimmed = rawKey.trim();
+  const wrappedInDoubleQuotes = trimmed.startsWith('"') && trimmed.endsWith('"');
+  const wrappedInSingleQuotes = trimmed.startsWith("'") && trimmed.endsWith("'");
   const withoutWrappingQuotes =
-    trimmed.startsWith('"') && trimmed.endsWith('"')
+    wrappedInDoubleQuotes || wrappedInSingleQuotes
       ? trimmed.slice(1, -1)
       : trimmed;
 
-  return withoutWrappingQuotes.replace(/\\n/g, "\n");
+  return withoutWrappingQuotes.replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
+}
+
+function getCredentialsFromEnv() {
+  const rawJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "";
+  if (rawJson.trim()) {
+    try {
+      const parsed = JSON.parse(rawJson);
+      return {
+        clientEmail: parsed.client_email || "",
+        privateKey: normalizePrivateKey(parsed.private_key || ""),
+      };
+    } catch {
+      throw new Error(
+        "GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON. Please paste exact service account JSON string."
+      );
+    }
+  }
+
+  return {
+    clientEmail: process.env.GOOGLE_CLIENT_EMAIL || "",
+    privateKey: normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY || ""),
+  };
+}
+
+function assertValidPrivateKey(privateKey) {
+  if (!privateKey.includes("BEGIN PRIVATE KEY")) {
+    throw new Error(
+      "GOOGLE_PRIVATE_KEY format is invalid. It must include BEGIN PRIVATE KEY/END PRIVATE KEY."
+    );
+  }
+
+  try {
+    createPrivateKey({ key: privateKey, format: "pem" });
+  } catch {
+    throw new Error(
+      "Google private key is not parseable. Check env value and ensure newline format is correct."
+    );
+  }
 }
 
 function getDriveClient() {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY || "");
+  const { clientEmail, privateKey } = getCredentialsFromEnv();
 
   if (!clientEmail || !privateKey) {
-    throw new Error("Google Drive credentials are not configured.");
+    throw new Error(
+      "Google Drive credentials are not configured. Set GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY (or GOOGLE_SERVICE_ACCOUNT_JSON)."
+    );
   }
+  assertValidPrivateKey(privateKey);
 
   const auth = new google.auth.JWT({
     email: clientEmail,
