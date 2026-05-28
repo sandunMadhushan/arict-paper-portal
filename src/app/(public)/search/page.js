@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -26,7 +26,7 @@ function getDepartmentFilterFromQuery(searchQuery = "") {
 }
 
 const LIST_PAGE_SIZE = 5;
-const COMPACT_PAGE_SIZE = 12;
+const COMPACT_PAGE_SIZE = 9;
 
 function SearchResultsContent() {
   const router = useRouter();
@@ -48,6 +48,8 @@ function SearchResultsContent() {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const resultsTopRef = useRef(null);
+  const skipScrollRef = useRef(true);
 
   useEffect(() => {
     setSelectedDepartments(getDepartmentFilterFromQuery(query));
@@ -173,6 +175,18 @@ function SearchResultsContent() {
     }
   }, [currentPage, totalPages]);
 
+  useEffect(() => {
+    if (skipScrollRef.current) {
+      skipScrollRef.current = false;
+      return;
+    }
+    resultsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   const hasActiveFilters =
     Boolean(query.trim()) ||
     selectedDepartments.length > 0 ||
@@ -193,7 +207,7 @@ function SearchResultsContent() {
     <section className="search-page" id="search-page">
       <div className="container">
         {/* Header */}
-        <div className="search-page-header">
+        <div className="search-page-header" ref={resultsTopRef}>
           <div>
             <h1 className="text-headline-lg">{query ? "Search Results" : "Papers"}</h1>
             <p className="text-body-md" style={{ color: "var(--color-secondary)" }}>
@@ -295,7 +309,7 @@ function SearchResultsContent() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                onPageChange={handlePageChange}
               />
             )}
           </div>

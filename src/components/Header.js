@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import RequestPaperModal from "@/components/RequestPaperModal";
 
 const navLinks = [
-  { href: "/", label: "Departments" },
+  { href: "/", label: "Home" },
   { href: "/search", label: "Papers" },
   { href: "/faculty", label: "Faculty" },
   { href: "/about", label: "About Us" },
