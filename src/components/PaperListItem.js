@@ -69,7 +69,7 @@ export default function PaperListItem({ paper }) {
           className="btn btn-secondary"
           id={`list-view-details-${paper.id}`}
         >
-          View Details
+          View Paper
           <span
             className="material-symbols-outlined"
             style={{ fontSize: "18px" }}

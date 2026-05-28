@@ -76,7 +76,7 @@ export default function PaperCard({ paper, compact = false }) {
           className="btn btn-secondary"
           id={`view-details-${paper.id}`}
         >
-          View Details
+          View Paper
           <span
             className="material-symbols-outlined"
             style={{ fontSize: "18px" }}
