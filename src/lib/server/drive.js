@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { createPrivateKey } from "crypto";
+import { Readable } from "stream";
 
 const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
@@ -143,6 +144,7 @@ export async function uploadPaperToDrive({ file, department, year, semester }) {
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+  const fileStream = Readable.from(buffer);
   const mimeType = file.type || "application/pdf";
 
   const uploadResponse = await drive.files.create({
@@ -152,7 +154,7 @@ export async function uploadPaperToDrive({ file, department, year, semester }) {
     },
     media: {
       mimeType,
-      body: buffer,
+      body: fileStream,
     },
     fields: "id, name, webViewLink",
   });
