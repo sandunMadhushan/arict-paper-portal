@@ -1,6 +1,7 @@
 "use client";
 
 import { departments } from "@/data/departments";
+import { sortAcademicYears, sortExamPeriods, sortSemesters } from "@/lib/papers";
 
 const defaultDepartmentOptions = departments.map((dept) => ({
   label: dept.name,
@@ -23,6 +24,10 @@ export default function FilterSidebar({
   onReset,
   hasActiveFilters = false,
 }) {
+  const sortedExamPeriodOptions = sortExamPeriods(examPeriodOptions);
+  const sortedAcademicYearOptions = sortAcademicYears(academicYearOptions);
+  const sortedSemesterOptions = sortSemesters(semesterOptions);
+
   const handleDeptToggle = (value) => {
     if (selectedDepartments.includes(value)) {
       onDepartmentChange(selectedDepartments.filter((d) => d !== value));
@@ -102,8 +107,8 @@ export default function FilterSidebar({
           <span className="material-symbols-outlined filter-icon">calendar_month</span>
         </div>
         <div className="filter-options">
-          {examPeriodOptions.length > 0 ? (
-            examPeriodOptions.map((period) => (
+          {sortedExamPeriodOptions.length > 0 ? (
+            sortedExamPeriodOptions.map((period) => (
               <label key={period} className="checkbox-wrapper">
                 <input
                   type="checkbox"
@@ -127,7 +132,7 @@ export default function FilterSidebar({
           <span className="material-symbols-outlined filter-icon">school</span>
         </div>
         <div className="filter-options">
-          {academicYearOptions.map((year) => (
+          {sortedAcademicYearOptions.map((year) => (
             <label key={year} className="checkbox-wrapper">
               <input
                 type="checkbox"
@@ -146,7 +151,7 @@ export default function FilterSidebar({
           <span className="material-symbols-outlined filter-icon">event</span>
         </div>
         <div className="filter-options">
-          {semesterOptions.map((semester) => (
+          {sortedSemesterOptions.map((semester) => (
             <label key={semester} className="checkbox-wrapper">
               <input
                 type="checkbox"
