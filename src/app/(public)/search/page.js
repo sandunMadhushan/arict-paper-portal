@@ -9,7 +9,12 @@ import PaperListItem from "@/components/PaperListItem";
 import Pagination from "@/components/Pagination";
 import { departments } from "@/data/departments";
 import { filterPapers, papers as localPapers } from "@/data/papers";
-import { fetchAllPapers } from "@/lib/papers";
+import {
+  fetchAllPapers,
+  sortAcademicYears,
+  sortExamPeriods,
+  sortSemesters,
+} from "@/lib/papers";
 
 function getDepartmentFilterFromQuery(searchQuery = "") {
   const trimmed = searchQuery.trim();
@@ -123,21 +128,21 @@ function SearchResultsContent() {
     const periods = papers
       .map((paper) => (paper.examPeriod || "").trim())
       .filter(Boolean);
-    return Array.from(new Set(periods)).sort((a, b) => b.localeCompare(a));
+    return sortExamPeriods(Array.from(new Set(periods)));
   }, [papers]);
 
   const availableAcademicYears = useMemo(() => {
     const years = papers
       .map((paper) => (paper.academicYear || "").trim())
       .filter(Boolean);
-    return Array.from(new Set(years));
+    return sortAcademicYears(Array.from(new Set(years)));
   }, [papers]);
 
   const availableSemesters = useMemo(() => {
     const semesters = papers
       .map((paper) => (paper.semester || "").trim())
       .filter(Boolean);
-    return Array.from(new Set(semesters));
+    return sortSemesters(Array.from(new Set(semesters)));
   }, [papers]);
 
   const totalResults = displayResults.length;

@@ -223,6 +223,37 @@ export function sortPapersByDate(papers, direction = "desc") {
   });
 }
 
+function extractYearFromLabel(label = "") {
+  const matches = String(label).match(/\b(19|20)\d{2}\b/g);
+  if (!matches?.length) return 0;
+  return Math.max(...matches.map((value) => Number.parseInt(value, 10)));
+}
+
+function extractNumberFromLabel(label = "") {
+  const match = String(label).match(/(\d+)/);
+  return match ? Number.parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+export function sortExamPeriods(periods = []) {
+  return [...periods].sort((a, b) => {
+    const yearDiff = extractYearFromLabel(b) - extractYearFromLabel(a);
+    if (yearDiff !== 0) return yearDiff;
+    return a.localeCompare(b);
+  });
+}
+
+export function sortAcademicYears(years = []) {
+  return [...years].sort(
+    (a, b) => extractNumberFromLabel(a) - extractNumberFromLabel(b)
+  );
+}
+
+export function sortSemesters(semesters = []) {
+  return [...semesters].sort(
+    (a, b) => extractNumberFromLabel(a) - extractNumberFromLabel(b)
+  );
+}
+
 export function getDepartmentStats(papers) {
   return DEPARTMENT_NAMES.map((name) => {
     const deptPapers = papers.filter(

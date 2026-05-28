@@ -6,7 +6,7 @@ import SearchBar from "@/components/SearchBar";
 import DepartmentCard from "@/components/DepartmentCard";
 import BrowseByExamPeriod from "@/components/BrowseByExamPeriod";
 import { departments } from "@/data/departments";
-import { applyDepartmentStats, fetchAllPapers } from "@/lib/papers";
+import { applyDepartmentStats, fetchAllPapers, sortExamPeriods } from "@/lib/papers";
 
 export default function Home() {
   const [departmentList, setDepartmentList] = useState(departments);
@@ -27,7 +27,7 @@ export default function Home() {
         if (!isMounted) return;
 
         setDepartmentList(applyDepartmentStats(departments, papers));
-        setExamPeriods(Array.from(periodSet).sort((a, b) => b.localeCompare(a)));
+        setExamPeriods(sortExamPeriods(Array.from(periodSet)));
       } catch (error) {
         if (isMounted) {
           setDepartmentList(
